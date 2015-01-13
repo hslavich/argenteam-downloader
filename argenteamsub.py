@@ -9,7 +9,8 @@ api_search = api_url + "search"
 api_episode = api_url + "episode"
 
 def match_version(release, version):
-    #TODO
+    if version:
+        return release['tags'] in version and release['team'] in version
     return True
 
 def download_sub(id, version):
