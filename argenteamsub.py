@@ -25,16 +25,15 @@ def download_sub(id, version):
 
 def search_sub(tvshow, season, episode, version=""):
     search = "%s s%#02de%#02d" % (tvshow, season, episode)
-    response = urllib.urlopen(api_search + "?q=" + search).read()
+    response = urllib.urlopen(api_search + "?q=" + urllib.quote_plus(search)).read()
     content = json.loads(response)
-
     for result in content['results']:
         download_sub(result['id'], version)
 
 for arg in sys.argv[1:]:
     match = re.match(r'^(?P<tvshow>.*)\WS(?P<season>\d\d)E(?P<episode>\d\d)(?P<version>.*)\.(mkv|avi|mp4)$', arg, flags=re.IGNORECASE)
     if match is not None:
-        tvshow = match.group('tvshow')
+        tvshow = match.group('tvshow').replace('.', ' ')
         season = match.group('season')
         episode = match.group('episode')
         version = match.group('version')
