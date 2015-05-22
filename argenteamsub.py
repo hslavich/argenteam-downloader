@@ -13,9 +13,10 @@ def release_to_string(release):
     return "%s %s %s %s" % (release['source'], release['codec'], release['tags'], release['team'])
 
 def match_version(release, version):
-    if version:
-        return release['tags'] in version and release['team'] in version
-    return True
+    if not version:
+        return True
+    return release['tags'].lower() in version.lower() \
+        and release['team'].lower() in version.lower()
 
 def rename_sub(file, name):
     dir, filename = os.path.split(file)
