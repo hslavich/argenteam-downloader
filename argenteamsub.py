@@ -102,7 +102,8 @@ def process_file(dir, filename):
         version = match.group('version')
         process_sub(tvshow, int(season), int(episode), version, dir, filename)
     else:
-        print("Invalid file: " + file)
+        print("ERROR. El nombre del archivo debe tener el siguiente formato:")
+        print("<serie>S<temporada>E<episodio>[version].(mkv|avi|mp4)")
 
 
 def process(path):
