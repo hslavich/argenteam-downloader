@@ -20,8 +20,12 @@ api_search = api_url + "search"
 api_episode = api_url + "episode"
 
 
-def release_to_string(release):
-    return "%s %s %s %s" % (release['source'], release['codec'], release['tags'], release['team'])
+def version_str(release):
+    version = ""
+    for tag in release['tags'].split():
+        version += "%s." % (tag)
+    version += "%s.%s-%s" % (release['source'], release['codec'], release['team'])
+    return version
 
 
 def match_version(release, version):
@@ -56,7 +60,7 @@ def download_sub(id, version):
     content = json.loads(str_response)
 
     for release in content['releases']:
-        release_name = release_to_string(release)
+        release_name = version_str(release)
         if match_version(release, version):
             print("Version match: " + release_name)
             if release['subtitles']:
