@@ -1,12 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import urllib
 import json
 import zipfile
 import os
 import re
 import argparse
+try:
+    # For Python 3.0 and later
+    from urllib.request import urlopen, urlretrieve
+    from urllib.parse import quote_plus
+except ImportError:
+    # Fall back to Python 2's urllib
+    from urllib2 import urlopen
+    from urllib import quote_plus, urlretrieve
 
 api_url = "http://argenteam.net/api/v1/"
 api_search = api_url + "search"
@@ -40,29 +47,31 @@ def extract_sub(zipfilename, dest):
 
 
 def download_sub(id, version):
-    response = urllib.urlopen(api_episode + "?id=" + str(id)).read()
-    content = json.loads(response)
+    response = urlopen(api_episode + "?id=" + str(id))
+    str_response = response.read().decode('utf-8')
+    content = json.loads(str_response)
 
     for release in content['releases']:
         release_name = release_to_string(release)
         if match_version(release, version):
-            print "Version match: " + release_name
+            print("Version match: " + release_name)
             if release['subtitles']:
                 sub = release['subtitles'][0]['uri']
-                return urllib.urlretrieve(sub)[0]
+                return urlretrieve(sub)[0]
             else:
-                print "No subtitles found for " + release_name
+                print("No subtitles found for " + release_name)
         else:
-            print "Ignoring version: " + release_name
+            print("Ignoring version: " + release_name)
 
     return None
 
 
 def search_sub(tvshow, season, episode, version=""):
     search = "%s S%#02dE%#02d" % (tvshow, season, episode)
-    print "Searching subtitles for: %s. Version: %s" % (search, version)
-    response = urllib.urlopen(api_search + "?q=" + urllib.quote_plus(search)).read()
-    content = json.loads(response)
+    print("Searching subtitles for: %s. Version: %s" % (search, version))
+    response = urlopen(api_search + "?q=" + quote_plus(search))
+    str_response = response.read().decode('utf-8')
+    content = json.loads(str_response)
     for result in content['results']:
         if result['type'] == 'episode':
             return result['id']
@@ -85,7 +94,7 @@ def process_file(dir, filename):
         version = match.group('version')
         process_sub(tvshow, int(season), int(episode), version, dir, filename)
     else:
-        print "Invalid file: " + file
+        print("Invalid file: " + file)
 
 
 def process(path):
@@ -93,7 +102,7 @@ def process(path):
         (dir, filename) = os.path.split(os.path.realpath(path))
         process_file(dir, filename)
     else:
-        print "Argumento invalido"
+        print("Argumento invalido")
 
 
 parser = argparse.ArgumentParser(description="Argenteam subtitles downloader")
