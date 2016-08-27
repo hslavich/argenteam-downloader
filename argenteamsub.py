@@ -20,6 +20,14 @@ api_search = api_url + "search"
 api_episode = api_url + "episode"
 
 
+def isInt(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
 def version_str(release):
     version = ""
     for tag in release['tags'].split():
@@ -60,14 +68,43 @@ def download_sub(release):
     return urlretrieve(sub)[0]
 
 
+def releases_menu(version, alt_version):
+    while True:
+        if version:
+            print("No hay subtítulo para la versión '%s'" % (version))
+        print("\nEstas son las opciones disponibles:")
+        i = 1
+        for release in alt_version:
+            print(u"%s. Descargar versión '%s'" % (str(i), version_str(release)))
+            i += 1
+        print("%s. Salir" % (str(i)))
+        selection = input("Seleccione una opción: ")
+        if isInt(selection):
+            int_selection = int(selection)
+            if int_selection >= 1 and int_selection < i:
+                print("")
+                return alt_version[int_selection-1]
+            elif int_selection == i:
+                return None
+        input("\nOpción inválida. Presione ENTER para volver a intentarlo.")
+        os.system('clear')
+
+
 def search_sub(id, version):
     print("Episodio encontrado, buscando subtítulos ..")
+    alt_version = list()
     response = urlopen(api_episode + "?id=" + str(id))
     str_response = response.read().decode('utf-8')
     content = json.loads(str_response)
     for release in content['releases']:
-        if release['subtitles'] and match_version(release, version):
-            return release
+        if release['subtitles']:
+            if match_version(release, version):
+                return release
+            else:
+                alt_version.append(release)
+    # Couldn't find the right subtitle..
+    if alt_version and args.alt: # ..offer the alternative ones
+        return releases_menu(version, alt_version)
     print("Lo siento, todavía no hay ningún subtítulo.")
     return None
 
@@ -120,6 +157,7 @@ def process(path):
 
 parser = argparse.ArgumentParser(description="Argenteam subtitles downloader")
 parser.add_argument("file", help="Archivo de video")
+parser.add_argument('--no-alt', dest='alt', action='store_false', help="No ofrecer subtítulos alternativos")
 args = parser.parse_args()
 
 process(args.file)
