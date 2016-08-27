@@ -25,10 +25,14 @@ def release_to_string(release):
 
 
 def match_version(release, version):
-    if not version:
-        return True
-    return release['tags'].lower() in version.lower() \
-        and release['team'].lower() in version.lower()
+    version_lower = version.lower()
+    match = release['source'].lower() in version_lower \
+        and release['team'].lower() in version_lower \
+        and release['codec'].lower() in version_lower
+    if match:
+        for tag in release['tags'].split():
+            match = match and tag.lower() in version_lower
+    return match
 
 
 def rename_sub(file, name):
