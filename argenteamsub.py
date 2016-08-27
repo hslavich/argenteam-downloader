@@ -96,11 +96,11 @@ def process_sub(tvshow, season, episode, version, dir, filename):
 def process_file(dir, filename):
     match = re.match(r'^(?P<tvshow>.*)\WS(?P<season>\d\d)E(?P<episode>\d\d)\W?(?P<version>.*)\.(mkv|avi|mp4)$', filename, flags=re.IGNORECASE)
     if match is not None:
-        tvshow = match.group('tvshow').replace('.', ' ')
-        season = match.group('season')
-        episode = match.group('episode')
-        version = match.group('version')
-        process_sub(tvshow, int(season), int(episode), version, dir, filename)
+        tvshow = match.group('tvshow').replace('.', ' ').title()
+        season = int(match.group('season'))
+        episode = int(match.group('episode'))
+        version = match.group('version').upper()
+        process_sub(tvshow, season, episode, version, dir, filename)
     else:
         print("ERROR. El nombre del archivo debe tener el siguiente formato:")
         print("<serie>S<temporada>E<episodio>[version].(mkv|avi|mp4)")
