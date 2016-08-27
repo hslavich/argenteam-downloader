@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# ----------------------- IMPORTS -----------------------
 import json
 import zipfile
 import os
@@ -15,11 +16,12 @@ except ImportError:
     from urllib2 import urlopen
     from urllib import quote_plus, urlretrieve
 
-api_url = "http://argenteam.net/api/v1/"
-api_search = api_url + "search"
-api_episode = api_url + "episode"
+# ----------------------- CONSTS -----------------------
+API_URL = "http://argenteam.net/api/v1/"
+API_SEARCH = API_URL + "search"
+API_EPISODE = API_URL + "episode"
 
-
+# --------------------- FUNCTIONS ----------------------
 def isInt(s):
     try:
         int(s)
@@ -93,7 +95,7 @@ def releases_menu(version, alt_version):
 def search_sub(id, version):
     print("Episodio encontrado, buscando subtítulos ..")
     alt_version = list()
-    response = urlopen(api_episode + "?id=" + str(id))
+    response = urlopen(API_EPISODE + "?id=" + str(id))
     str_response = response.read().decode('utf-8')
     content = json.loads(str_response)
     for release in content['releases']:
@@ -113,7 +115,7 @@ def search_episode(tvshow, season, episode):
     search = "%s S%#02dE%#02d" % (tvshow, season, episode)
     os.system('clear')
     print("Buscando episodio '%s' .." % (search))
-    response = urlopen(api_search + "?q=" + quote_plus(search))
+    response = urlopen(API_SEARCH + "?q=" + quote_plus(search))
     str_response = response.read().decode('utf-8')
     content = json.loads(str_response)
     for result in content['results']:
@@ -152,11 +154,12 @@ def process(path):
         (dir, filename) = os.path.split(os.path.realpath(path))
         process_file(dir, filename)
     else:
-        print("Argumento invalido")
+        print("ERROR: El parámetro no es un archivo válido")
 
 
-parser = argparse.ArgumentParser(description="Argenteam subtitles downloader")
-parser.add_argument("file", help="Archivo de video")
+# ------------------------ MAIN ------------------------
+parser = argparse.ArgumentParser(description="aRGENTeaM Subtitles Downloader")
+parser.add_argument('file', help="Archivo de video")
 parser.add_argument('--no-alt', dest='alt', action='store_false', help="No ofrecer subtítulos alternativos")
 args = parser.parse_args()
 
