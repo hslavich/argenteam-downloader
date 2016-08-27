@@ -54,43 +54,47 @@ def extract_sub(zipfilename, dest):
     return None
 
 
-def download_sub(id, version):
+def download_sub(release):
+    print(u"Descargando subtítulo para la versión '%s' .." % version_str(release))
+    sub = release['subtitles'][0]['uri']
+    return urlretrieve(sub)[0]
+
+
+def search_sub(id, version):
+    print("Episodio encontrado, buscando subtítulos ..")
     response = urlopen(api_episode + "?id=" + str(id))
     str_response = response.read().decode('utf-8')
     content = json.loads(str_response)
-
     for release in content['releases']:
-        release_name = version_str(release)
-        if match_version(release, version):
-            print("Version match: " + release_name)
-            if release['subtitles']:
-                sub = release['subtitles'][0]['uri']
-                return urlretrieve(sub)[0]
-            else:
-                print("No subtitles found for " + release_name)
-        else:
-            print("Ignoring version: " + release_name)
-
+        if release['subtitles'] and match_version(release, version):
+            return release
+    print("Lo siento, todavía no hay ningún subtítulo.")
     return None
 
 
-def search_sub(tvshow, season, episode, version=""):
+def search_episode(tvshow, season, episode):
     search = "%s S%#02dE%#02d" % (tvshow, season, episode)
-    print("Searching subtitles for: %s. Version: %s" % (search, version))
+    os.system('clear')
+    print("Buscando episodio '%s' .." % (search))
     response = urlopen(api_search + "?q=" + quote_plus(search))
     str_response = response.read().decode('utf-8')
     content = json.loads(str_response)
     for result in content['results']:
         if result['type'] == 'episode':
             return result['id']
+    print("El episodio no se encuentra disponible.")
     return None
 
 
 def process_sub(tvshow, season, episode, version, dir, filename):
-    sub_id = search_sub(tvshow, season, episode, version)
-    subzip = download_sub(sub_id, version)
-    sub_file = extract_sub(subzip, dir)
-    rename_sub(sub_file, filename)
+    episode_id = search_episode(tvshow, season, episode)
+    if episode_id is not None:
+        release = search_sub(episode_id, version)
+        if release is not None:
+            sub_zip = download_sub(release)
+            sub_file = extract_sub(sub_zip, dir)
+            rename_sub(sub_file, filename)
+            print("Subtítulo descargado satisfactoriamente.")
 
 
 def process_file(dir, filename):
