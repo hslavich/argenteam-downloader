@@ -1,11 +1,17 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import re
 import os
 import argparse
 from fuzzywuzzy import fuzz, process
 from bs4 import BeautifulSoup
-from urllib.request import Request, urlopen
+try:
+    # For Python 3.0 and later
+    from urllib.request import Request, urlopen
+except ImportError:
+    # Fall back to Python 2's urllib
+    from urllib2 import urlopen, Request
 
 URL_BASE = "https://www.tusubtitulo.com/"
 
@@ -33,7 +39,7 @@ def process_file(dir, filename):
 
 def process_subs(tvshow, season, episode, version, dir, filename):
     url = "%sserie/%s/%#02d/%#02d/0" % (URL_BASE, tvshow, season, episode)
-    page = urlopen(url).read()
+    page = urlopen(url).read().decode('utf-8')
     subs = parse_content(page)
     (ver, lang, sub_url) = select_sub(subs, version)
     print("Descargando subtitulo para la version %s - %s" % (ver, lang))
@@ -47,12 +53,12 @@ def parse_content(page):
     soup = BeautifulSoup(page, 'html.parser')
     result = {}
     for v in soup.find_all(id=re.compile("version")):
-        version = re.search(r'Versión (.*?),', v.find(class_="title-sub").text).group(1)
+        version = re.search(r'Versi.n (.*?),', v.find(class_="title-sub").text).group(1)
         if not version in result: result[version] = {}
         for sub in v.find_all(class_="sslist"):
             idioma = sub.find(class_="li-idioma").text.strip()
             for link in sub.find_all("a"):
-                if 'Descargar' == link.text or 'más actualizado' in link.text:
+                if 'Descargar' == link.text or u'más actualizado' in link.text:
                     url = re.search(r'href=\"(.*?)\"', str(link)).group(1)
                     result[version][idioma] = URL_BASE + url
     return result
@@ -60,13 +66,16 @@ def parse_content(page):
 
 def select_sub(subs, version):
     best_version, _ = process.extractOne(version, subs.keys(), scorer=fuzz.token_set_ratio)
-    best_lang, _ = process.extractOne('Español Latinoamérica', subs[best_version].keys(), scorer=fuzz.token_set_ratio)
+    best_lang, _ = process.extractOne(u'Español Latinoamérica', subs[best_version].keys(), scorer=fuzz.token_set_ratio)
     return (best_version, best_lang, subs[best_version][best_lang])
 
 
 def write_file(sub_data, dir, filename):
     filename, _ = os.path.splitext(filename)
-    f = open(os.path.join(dir, filename + '.srt'), 'b+w')
+    try:
+        f = open(os.path.join(dir, filename + '.srt'), 'b+w')
+    except ValueError:
+        f = open(os.path.join(dir, filename + '.srt'), 'w')
     f.write(sub_data)
 
 # ------------------------ MAIN ------------------------
