@@ -27,20 +27,26 @@ def init(path):
 def process_file(dir, filename):
     match = re.match(r'^(?P<tvshow>.*)\WS(?P<season>\d\d)E(?P<episode>\d\d)\W?(?P<version>.*)\.(mkv|avi|mp4)$', filename, flags=re.IGNORECASE)
     if match is not None:
-        tvshow = match.group('tvshow').replace('.', '-').title()
+        tvshow = match.group('tvshow').title()
         season = int(match.group('season'))
         episode = int(match.group('episode'))
         version = match.group('version').upper()
-        process_subs(tvshow, season, episode, version, dir, filename)
+        show_id = search_show_id(tvshow)
+        process_subs(show_id, season, episode, version, dir, filename)
     else:
         print("ERROR. El nombre del archivo debe tener el siguiente formato:")
         print("<serie>S<temporada>E<episodio>[version].(mkv|avi|mp4)")
 
+def search_show_id(show):
+    page = urlopen(URL_BASE + 'series.php').read().decode('utf-8')
+    link = BeautifulSoup(page, 'html.parser').find('a', text=show).get('href')
+    return link.split('/')[-1]
 
-def process_subs(tvshow, season, episode, version, dir, filename):
-    url = "%sserie/%s/%#02d/%#02d/0" % (URL_BASE, tvshow, season, episode)
+
+def process_subs(show_id, season, episode, version, dir, filename):
+    url = "%sajax_loadShow.php?show=%s&season=%s" % (URL_BASE, show_id, season)
     page = urlopen(url).read().decode('utf-8')
-    subs = parse_content(page)
+    subs = parse_content(page, season, episode)
     (ver, lang, sub_url) = select_sub(subs, version)
     print("Descargando subtitulo para la version %s - %s" % (ver, lang))
     req = Request(sub_url, headers={'Referer': 'https://www.tusubtitulo.com'})
@@ -49,18 +55,22 @@ def process_subs(tvshow, season, episode, version, dir, filename):
     write_file(sub_data, dir, filename)
 
 
-def parse_content(page):
-    soup = BeautifulSoup(page, 'html.parser')
+def parse_content(page, season, episode):
+    html = BeautifulSoup(page, 'html.parser')
     result = {}
-    for v in soup.find_all(id=re.compile("version")):
-        version = re.search(r'Versi.n (.*?),', v.find(class_="title-sub").text).group(1)
-        if not version in result: result[version] = {}
-        for sub in v.find_all(class_="sslist"):
-            idioma = sub.find(class_="li-idioma").text.strip()
-            for link in sub.find_all("a"):
-                if 'Descargar' == link.text or u'más actualizado' in link.text:
-                    url = re.search(r'href=\"(.*?)\"', str(link)).group(1)
-                    result[version][idioma] = URL_BASE + url
+    row = html.find('a', text=re.compile("%#1dx%#02d" % (season, episode))).find_parent('tr')
+    while True:
+        row = row.find_next_sibling()
+        if not row: break
+        regex = re.search('Versi.n (.*)', row.text)
+        if regex:
+            v = regex.group(1).strip()
+            result[v] = {}
+        else:
+            langregex = row.find('td', class_="language")
+            if not langregex: break
+            lang = langregex.text.strip()
+            result[v][lang] = 'https:' + row.a.get('href')
     return result
 
 
