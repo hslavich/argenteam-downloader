@@ -39,7 +39,11 @@ def process_file(dir, filename):
 
 def search_show_id(show):
     page = urlopen(URL_BASE + 'series.php').read().decode('utf-8')
-    link = BeautifulSoup(page, 'html.parser').find('a', text=show).get('href')
+    regex = show.replace('.', '[\s,.:-]+')
+    try:
+        link = BeautifulSoup(page, 'html.parser').find('a', text=re.compile(regex)).get('href')
+    except:
+        exit("Show %s not found" % show)
     return link.split('/')[-1]
 
 
@@ -67,9 +71,8 @@ def parse_content(page, season, episode):
             v = regex.group(1).strip()
             result[v] = {}
         else:
-            langregex = row.find('td', class_="language")
-            if not langregex: break
-            lang = langregex.text.strip()
+            if not re.search('Descargar', row.text): break
+            lang = row.find('td', class_="language").text.strip()
             result[v][lang] = 'https:' + row.a.get('href')
     return result
 
